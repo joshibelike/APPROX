@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <title>APPROX</title>
+  <meta name="description" content="Интерактивная лаборатория: обучите нейронную сеть восстанавливать функции по точкам прямо в браузере и посмотрите, когда она ошибается." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2308101f'/%3E%3Cpath d='M3 22c5 0 5-12 10-12s5 16 10 10c2-2 4-6 6-6' fill='none' stroke='%236db4ff' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('approx-theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip" href="#lab">К лаборатории</a>
+
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#top" aria-label="APPROX — на главную"><span class="logo">APPROX</span></a>
+    <nav class="nav" id="nav" aria-label="Разделы">
+      <a href="#lab">Лаборатория</a>
+      <a href="#compare">Сравнение сетей</a>
+      <a href="#how">Как это работает</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Переключить тему">
+        <svg class="ic ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="ic ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Меню" aria-expanded="false" aria-controls="nav">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hud" aria-hidden="true">
+        <i class="hud-slash tl"></i><i class="hud-slash tr"></i>
+        <i class="hud-sq tl"></i><i class="hud-sq tr"></i>
+        <svg class="hud-par" viewBox="0 0 170 16"><path d="M10 15l5-13h14l-5 13zM34 15l5-13h14l-5 13zM82 3h7v9h-7zM117 15l5-13h14l-5 13zM141 15l5-13h14l-5 13z"/></svg>
+        <svg class="hud-chev l" viewBox="0 0 12 40"><path d="M1 8l5-5 5 5M1 16l5-5 5 5M1 24l5-5 5 5M1 32l5-5 5 5"/></svg>
+        <svg class="hud-chev r" viewBox="0 0 12 40"><path d="M1 8l5-5 5 5M1 16l5-5 5 5M1 24l5-5 5 5M1 32l5-5 5 5"/></svg>
+        <span class="hud-bars l"><b></b><b></b><b></b></span>
+        <span class="hud-bars r"><b></b><b></b><b></b></span>
+      </div>
+
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow mono"><span class="dot"></span>Исследовательский проект · НПК 2026</p>
+          <h1>Нейросеть, которая восстанавливает функции по точкам</h1>
+          <p class="lead">Дайте сети несколько зашумлённых точек — она сама подберёт кривую. Меняйте функцию, число точек, шум и архитектуру, смотрите, как рождается аппроксимация и в какой момент она ломается.</p>
+          <div class="cta">
+            <a class="btn primary" href="#lab">Открыть лабораторию
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="btn ghost" href="#how">Как это устроено</a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="ring">
+            <svg class="ring-svg" viewBox="0 0 400 400" aria-hidden="true">
+              <circle cx="200" cy="200" r="196"/>
+              <circle cx="200" cy="200" r="190" class="thin"/>
+              <path d="M200 6v388M6 200h388" class="thin"/>
+              <path d="M52 40l12 12M348 40l-12 12M52 360l12-12M348 360l-12-12" class="mark"/>
+              <path d="M18 154v92M382 154v92" class="mark"/>
+            </svg>
+            <canvas id="heroCanvas" role="img" aria-label="Нейросеть в реальном времени подгоняет кривую под точки"></canvas>
+            <div class="ring-metric">
+              <span class="mono label">MSE</span>
+              <b id="heroMse">—</b>
+              <span class="mono label" id="heroEpoch">эпоха 0</span>
+            </div>
+            <button class="live-toggle mono" id="heroToggle" type="button" aria-pressed="false" aria-label="Пауза живой демонстрации">
+              <svg class="ic ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+              <svg class="ic ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+              <span>LIVE</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="row a"><div class="track" data-chips="ГЛАДКАЯ ФУНКЦИЯ|ИЗЛОМ|ВЫСОКАЯ ЧАСТОТА|ШУМ В ДАННЫХ|ЭКСТРАПОЛЯЦИЯ|ГАУССИАНА|СТУПЕНЬКА"></div></div>
+        <div class="row b"><div class="track" data-chips="ПЕРЕОБУЧЕНИЕ|ОБРАТНОЕ РАСПРОСТРАНЕНИЕ|ADAM|MSE|RELU · TANH · SIGMOID|ПОЛНОСВЯЗНАЯ СЕТЬ|АППРОКСИМАЦИЯ"></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="lab">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow mono"><span class="dot"></span>01 / Лаборатория</p>
+          <h2>Обучите сеть сами</h2>
+          <p class="sub">Выберите функцию, задайте число точек и шум, соберите архитектуру — и нажмите «Обучить». Ведите курсор по графику, чтобы сравнить предсказание с истиной. Серые зоны — то, чего сеть не видела при обучении (экстраполяция).</p>
+        </header>
+
+        <div class="presets" role="group" aria-label="Эксперименты из работы">
+          <span class="mono muted">Из работы:</span>
+          <button class="chip-btn" type="button" data-preset="smooth">1 · Гладкая функция</button>
+          <button class="chip-btn" type="button" data-preset="kink">2 · Излом</button>
+          <button class="chip-btn" type="button" data-preset="few">3 · Мало точек</button>
+          <a class="chip-btn link" href="#compare">Сравнить три сети →</a>
+        </div>
+
+        <div class="lab-grid">
+          <div class="lab-main">
+            <article class="glass-card" id="labCard">
+              <div class="card-top">
+                <span class="mono muted" id="labStatus" aria-live="polite">Эпоха 0 / 1000</span>
+                <label class="pill-select">
+                  <span class="sr">Функция</span>
+                  <select id="fnSelect">
+                    <optgroup label="Из работы">
+                      <option value="f1">f₁ · Гладкая</option>
+                      <option value="f2">f₂ · Излом</option>
+                      <option value="f3">f₃ · Высокая частота</option>
+                    </optgroup>
+                    <optgroup label="Ещё функции">
+                      <option value="gauss">Гауссиана</option>
+                      <option value="step">Ступенька</option>
+                      <option value="poly">Кубика x³ − x</option>
+                    </optgroup>
+                    <optgroup label="Свои">
+                      <option value="custom">Своя формула…</option>
+                      <option value="draw">Нарисовать точки…</option>
+                    </optgroup>
+                  </select>
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </label>
+              </div>
+
+              <div class="plot-wrap">
+                <canvas id="fitCanvas" role="img" aria-label="График: истинная функция, обучающие точки и предсказание нейросети"></canvas>
+                <p class="draw-hint mono" id="drawHint" hidden>Нажимайте и ведите по графику, чтобы ставить точки. Клик по точке удаляет её. Нужно минимум 3.</p>
+              </div>
+
+              <ul class="legend mono" aria-label="Обозначения">
+                <li><i class="lg lg-true"></i>Истинная функция</li>
+                <li><i class="lg lg-pred"></i>Предсказание сети</li>
+                <li><i class="lg lg-pts"></i>Обучающие точки</li>
+              </ul>
+
+              <div class="card-metric">
+                <span class="metric-label" id="mseLabel">Среднеквадратичная ошибка на тесте</span>
+                <div class="metric-value" aria-live="off"><span id="mseBig">—</span><span class="trend" id="mseTrend" aria-hidden="true">↘</span></div>
+                <span class="metric-sub mono" id="mseSub">train — · время —</span>
+              </div>
+            </article>
+
+            <div class="twin">
+              <article class="panel">
+                <h3 class="panel-title mono">Кривая ошибки</h3>
+                <canvas id="lossCanvas" role="img" aria-label="Кривые ошибки обучения и теста в логарифмической шкале"></canvas>
+                <ul class="legend mono small">
+                  <li><i class="lg lg-train"></i>Обучение</li>
+                  <li><i class="lg lg-test"></i>Тест</li>
+                </ul>
+              </article>
+              <article class="panel">
+                <h3 class="panel-title mono">Схема сети</h3>
+                <canvas id="netCanvas" role="img" aria-label="Схема нейросети: слои и веса связей"></canvas>
+                <p class="mono muted small" id="netInfo">—</p>
+              </article>
+            </div>
+          </div>
+
+          <aside class="lab-side" aria-label="Настройки обучения">
+            <div class="run-bar">
+              <button class="btn primary grow" id="runBtn" type="button">
+                <svg class="ic ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+                <svg class="ic ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+                <span id="runLabel">Обучить</span>
+              </button>
+              <button class="btn ghost icon-only" id="resetBtn" type="button" aria-label="Сбросить сеть" title="Сбросить сеть (новая инициализация весов)">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+              </button>
+            </div>
+
+            <section class="panel ctl" aria-labelledby="h-fn">
+              <h3 class="panel-title mono" id="h-fn">Функция</h3>
+              <p class="formula" id="fnFormula">sin(2πx)·e⁻ˣ</p>
+              <p class="muted small" id="fnHint">Гладкая нелинейная функция</p>
+              <div class="field" id="customField" hidden>
+                <label for="exprInput">f(x) =</label>
+                <input id="exprInput" class="input mono" type="text" value="sin(3*x) * x" spellcheck="false" autocomplete="off" />
+                <p class="err small" id="exprErr" role="alert" hidden></p>
+                <p class="muted small">Доступно: sin, cos, tan, exp, abs, sqrt, log, tanh, pi, e, ^</p>
+              </div>
+              <div class="field row2" id="drawField" hidden>
+                <button class="btn ghost sm" id="drawClear" type="button">Очистить</button>
+                <button class="btn ghost sm" id="drawSample" type="button">Пример</button>
+              </div>
+            </section>
+
+            <section class="panel ctl" id="dataPanel" aria-labelledby="h-data">
+              <h3 class="panel-title mono" id="h-data">Данные</h3>
+              <div class="field" id="nField">
+                <div class="field-head"><label for="nRange">Точек для обучения</label><output id="nOut" class="mono" for="nRange">100</output></div>
+                <input id="nRange" type="range" min="5" max="500" step="1" value="100" />
+              </div>
+              <div class="field" id="noiseField">
+                <div class="field-head"><label for="noiseRange">Шум σ</label><output id="noiseOut" class="mono" for="noiseRange">0.02</output></div>
+                <input id="noiseRange" type="range" min="0" max="0.3" step="0.005" value="0.02" />
+              </div>
+              <div class="field row2" id="rangeField">
+                <div><label for="x0">x от</label><input id="x0" class="input mono" type="number" step="0.1" value="0" /></div>
+                <div><label for="x1">до</label><input id="x1" class="input mono" type="number" step="0.1" value="2" /></div>
+              </div>
+              <div class="field" id="distField">
+                <div class="seg" role="group" aria-label="Расположение точек">
+                  <button type="button" data-dist="linspace" aria-pressed="true">По сетке</button>
+                  <button type="button" data-dist="random" aria-pressed="false">Случайно</button>
+                </div>
+              </div>
+              <button class="btn ghost sm" id="reshuffle" type="button">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                Новая выборка
+              </button>
+            </section>
+
+            <section class="panel ctl" aria-labelledby="h-net">
+              <h3 class="panel-title mono" id="h-net">Нейросеть</h3>
+              <div class="chips" role="group" aria-label="Готовые архитектуры">
+                <button class="chip-btn sm" type="button" data-arch="16,16">16·16</button>
+                <button class="chip-btn sm" type="button" data-arch="64,64,64">64×3</button>
+                <button class="chip-btn sm" type="button" data-arch="128,128,64">128·128·64</button>
+                <button class="chip-btn sm" type="button" data-arch="256,256,256,256">256×4</button>
+              </div>
+              <ul class="layers" id="layers" aria-label="Скрытые слои"></ul>
+              <button class="btn ghost sm" id="addLayer" type="button">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Добавить слой
+              </button>
+              <div class="field">
+                <span class="lbl">Функция активации</span>
+                <div class="seg" role="group" aria-label="Функция активации">
+                  <button type="button" data-act="relu" aria-pressed="true">ReLU</button>
+                  <button type="button" data-act="tanh" aria-pressed="false">tanh</button>
+                  <button type="button" data-act="sigmoid" aria-pressed="false">sigmoid</button>
+                </div>
+              </div>
+              <p class="mono muted small" id="paramInfo">—</p>
+            </section>
+
+            <section class="panel ctl" aria-labelledby="h-train">
+              <h3 class="panel-title mono" id="h-train">Обучение (Adam)</h3>
+              <div class="field">
+                <div class="field-head"><label for="epochRange">Эпох</label><output id="epochOut" class="mono" for="epochRange">1000</output></div>
+                <input id="epochRange" type="range" min="50" max="3000" step="50" value="1000" />
+              </div>
+              <div class="field row2">
+                <div>
+                  <label for="batchSel">Батч</label>
+                  <div class="select-box"><select id="batchSel" class="input mono">
+                    <option>4</option><option>8</option><option>16</option><option selected>32</option><option>64</option><option>128</option>
+                  </select></div>
+                </div>
+                <div>
+                  <label for="lrSel">Скорость обуч. (lr)</label>
+                  <div class="select-box"><select id="lrSel" class="input mono">
+                    <option value="0.0001">0.0001</option><option value="0.0003">0.0003</option><option value="0.001" selected>0.001</option><option value="0.003">0.003</option><option value="0.01">0.01</option><option value="0.03">0.03</option>
+                  </select></div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="speedSel">Темп показа</label>
+                <div class="select-box"><select id="speedSel" class="input mono">
+                  <option value="30">30 эпох/с — медленно</option>
+                  <option value="100">100 эпох/с</option>
+                  <option value="300" selected>300 эпох/с</option>
+                  <option value="Infinity">Максимум</option>
+                </select></div>
+              </div>
+              <label class="switch">
+                <input id="extrapChk" type="checkbox" checked />
+                <span class="track-sw" aria-hidden="true"></span>
+                <span>Показывать экстраполяцию</span>
+              </label>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="compare">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow mono"><span class="dot"></span>02 / Сравнение</p>
+          <h2>Три сети — одни данные</h2>
+          <p class="sub">Эксперимент о переобучении из работы: мало точек, шум и три сети разного размера. Малая видит только общий тренд, большая «запоминает» каждую точку — а между ними рисует кашу.</p>
+        </header>
+
+        <div class="cmp-bar">
+          <div class="field">
+            <span class="lbl">Функция</span>
+            <label class="pill-select sm">
+              <span class="sr">Функция для сравнения</span>
+              <select id="cmpFn">
+                <option value="f3" selected>f₃ · Высокая частота</option>
+                <option value="f1">f₁ · Гладкая</option>
+                <option value="f2">f₂ · Излом</option>
+                <option value="gauss">Гауссиана</option>
+                <option value="step">Ступенька</option>
+                <option value="poly">Кубика</option>
+              </select>
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </label>
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="cmpN">Точек</label><output id="cmpNOut" class="mono" for="cmpN">10</output></div>
+            <input id="cmpN" type="range" min="5" max="60" step="1" value="10" />
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="cmpNoise">Шум σ</label><output id="cmpNoiseOut" class="mono" for="cmpNoise">0.05</output></div>
+            <input id="cmpNoise" type="range" min="0" max="0.3" step="0.005" value="0.05" />
+          </div>
+          <div class="cmp-actions">
+            <button class="btn primary" id="cmpRun" type="button" data-state="idle">
+              <svg class="ic ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+              <svg class="ic ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+              <span id="cmpRunLabel">Обучить все три</span>
+            </button>
+            <button class="btn ghost icon-only" id="cmpReset" type="button" aria-label="Сбросить" title="Сбросить и перегенерировать данные">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cmp-grid" id="cmpGrid"></div>
+        <p class="note small muted" id="cmpNote">Большая сеть (256×4) обучается 500 эпох, остальные — 1000, как в работе: она заметно тяжелее.</p>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow mono"><span class="dot"></span>03 / Как это работает</p>
+          <h2>Алгоритм из работы — в браузере</h2>
+          <p class="sub">Нейросеть написана на чистом JavaScript без библиотек: прямой проход, обратное распространение ошибки, оптимизатор Adam и мини-батчи реализованы вручную. Обучение идёт в Web Worker, поэтому страница не зависает.</p>
+        </header>
+
+        <ol class="steps">
+          <li class="step glass-lite"><span class="mono num">01</span><h3>Данные</h3><p>Берём функцию на отрезке, ставим <code>n</code> точек по сетке (<code>linspace</code>) и добавляем гауссов шум — как в реальных измерениях.</p></li>
+          <li class="step glass-lite"><span class="mono num">02</span><h3>Прямой проход</h3><p>Полносвязная сеть 1 → скрытые слои → 1. Каждый нейрон считает взвешенную сумму входов со смещением и пропускает через ReLU, tanh или sigmoid.</p></li>
+          <li class="step glass-lite"><span class="mono num">03</span><h3>Ошибка</h3><p>Сравниваем ответ с эталоном: <code>MSE = среднее (ŷ − y)²</code> по мини-батчу. Чем меньше, тем ближе кривая к точкам.</p></li>
+          <li class="step glass-lite"><span class="mono num">04</span><h3>Обучение</h3><p>Обратное распространение вычисляет вклад каждого веса в ошибку, а оптимизатор Adam (lr = 0.001) сдвигает веса. Повторяем сотни эпох.</p></li>
+        </ol>
+
+        <div class="how-grid">
+          <figure class="code-card glass-lite">
+            <figcaption class="mono"><span>JavaScript · src/nn.js</span><span class="muted">фрагмент</span></figcaption>
+<pre><code><span class="k">class</span> <span class="f">MLP</span> {
+  <span class="f">constructor</span>(hidden, activation = <span class="s">'relu'</span>, rng = Math.random) {
+    <span class="k">this</span>.sizes = [1, ...hidden, 1];
+    <span class="k">this</span>.activation = activation;
+    <span class="k">this</span>.L = <span class="k">this</span>.sizes.length - 1;
+    <span class="c">// … градиенты и состояние Adam …</span>
+
+    <span class="k">for</span> (<span class="k">let</span> l = 0; l &lt; <span class="k">this</span>.L; l++) {
+      <span class="k">const</span> nin = <span class="k">this</span>.sizes[l];
+      <span class="k">const</span> nout = <span class="k">this</span>.sizes[l + 1];
+      <span class="k">const</span> bound = 1 / Math.sqrt(nin);
+      <span class="k">const</span> W = <span class="k">new</span> Float64Array(nin * nout);
+      <span class="k">for</span> (<span class="k">let</span> i = 0; i &lt; W.length; i++) W[i] = (rng() * 2 - 1) * bound;
+      <span class="k">this</span>.W.push(W);
+      <span class="c">// … смещения b и массивы Adam …</span>
+    }
+  }
+}</code></pre>
+          </figure>
+
+          <div class="facts">
+            <div class="fact glass-lite"><b>1 → N → 1</b><span>Один вход x, один выход ŷ — сеть строит график функции одной переменной.</span></div>
+            <div class="fact glass-lite"><b>Переобучение</b><span>Если параметров слишком много, а точек мало, ошибка на обучении ≈ 0, а между точками — каша. Следите за кривой «Тест».</span></div>
+            <div class="fact glass-lite"><b>Экстраполяция</b><span>Вне области обучения сеть ничего не «знает»: ReLU-сеть продолжит прямой линией, tanh — «выйдет на плато».</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap foot-grid">
+      <div>
+        <span class="logo">APPROX</span>
+        <p class="muted small">Интерактивная версия практической части работы «Аппроксимация функций с помощью нейронных сетей».</p>
+      </div>
+      <p class="muted small credit">Турлова Мария, 10А · МОАУ «Лицей №8», г. Оренбург, 2026<br />Научный руководитель: Назарова С. А.</p>
+    </div>
+    <div class="hud foot-hud" aria-hidden="true"><i class="hud-sq tl"></i><i class="hud-sq tr"></i><i class="hud-slash tl"></i><i class="hud-slash tr"></i></div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

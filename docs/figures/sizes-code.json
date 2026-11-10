@@ -1,0 +1,58 @@
+{
+ "code-functions": {
+  "w": 635,
+  "h": 584
+ },
+ "code-mlp-init": {
+  "w": 604,
+  "h": 454
+ },
+ "code-forward": {
+  "w": 549,
+  "h": 639
+ },
+ "code-gendata": {
+  "w": 627,
+  "h": 362
+ },
+ "code-step-loss": {
+  "w": 604,
+  "h": 362
+ },
+ "code-backprop": {
+  "w": 557,
+  "h": 639
+ },
+ "code-act-deriv": {
+  "w": 705,
+  "h": 381
+ },
+ "code-adam": {
+  "w": 557,
+  "h": 491
+ },
+ "code-trainepoch": {
+  "w": 682,
+  "h": 473
+ },
+ "code-worker-loop": {
+  "w": 752,
+  "h": 657
+ },
+ "code-presets": {
+  "w": 557,
+  "h": 178
+ },
+ "code-cmp": {
+  "w": 549,
+  "h": 270
+ },
+ "term-structure": {
+  "w": 498,
+  "h": 419
+ },
+ "term-test": {
+  "w": 756,
+  "h": 258
+ }
+}
