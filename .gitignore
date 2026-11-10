@@ -1,7 +1,3 @@
-# Claude Code
-.claude/
-CLAUDE.md
-
 # зависимости и сборка
 node_modules/
 dist/
